@@ -9,6 +9,11 @@
 [3]: https://img.shields.io/dub/l/vibe-d.svg
 [4]: LICENSE
 
+### Docker
+
+```bash
+docker run -t --name sobike -p 8080:8080 -d playniuniu/sobike-server
+```
 
 ### 使用方法
 
