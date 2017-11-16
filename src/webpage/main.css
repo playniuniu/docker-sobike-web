@@ -1,0 +1,24 @@
+.hero-body {
+    padding: 1.2rem 1rem;
+}
+
+.title {
+    font-size: 24px;
+}
+
+.footer {
+    padding: 1.5rem;
+}
+
+#search {
+    margin: 1rem .5rem;
+}
+
+#map {
+    height: 500px;
+    width: auto;
+}
+
+#err-msg {
+    display: none;
+}
