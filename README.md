@@ -12,7 +12,7 @@
 ### Docker
 
 ```bash
-docker run -t --name sobike -p 8080:8080 -d playniuniu/sobike-server
+docker run -t --name sobike -p 8080:8080 -d playniuniu/sobike-web
 ```
 
 ### 使用方法
