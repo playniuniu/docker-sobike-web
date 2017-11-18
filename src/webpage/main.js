@@ -39,7 +39,7 @@ function updateMap(ajax_data, new_lng, new_lat) {
     }
     var ofo_list = ajax_data.ofo.bike_list;
     var mobike_list = ajax_data.mobike.bike_list;
-    var total_list = ofo_list.concat(mobike_list)
+    var total_list = [].concat(mobike_list).concat(ofo_list)
 
     if (map_maker.length !== 0) {
         for (var index in map_maker) {
@@ -51,7 +51,7 @@ function updateMap(ajax_data, new_lng, new_lat) {
     for (var i in total_list) {
         var lat = total_list[i].lat;
         var lng = total_list[i].lng;
-        if (total_list[i].type === "ofo") {
+        if (total_list[i].car_type === "ofo") {
             var marker = L.marker([lat, lng], {icon: ofo_icon}).addTo(map);
         }
         else {

@@ -1,4 +1,6 @@
-package soapi 
+package soapi
+
+import "bikelib"
 
 // ResIndex struct
 type ResIndex struct {
@@ -15,23 +17,15 @@ type ResAddr struct {
 	Lat      float64 `json:"lat"`
 }
 
-// BikeEl struct
-type BikeEl struct {
-	Lng  float64 `json:"lng"`
-	Lat  float64 `json:"lat"`
-	Type string  `json:"type"`
-	ID   string  `json:"id"`
-}
-
 // ResBike struct
 type ResBike struct {
 	Status int `json:"status"`
 	Ofo    struct {
-		Data  []BikeEl `json:"bike_list"`
-		Count int      `json:"count"`
+		Data  []bikelib.BikeData `json:"bike_list"`
+		Count int                `json:"count"`
 	} `json:"ofo"`
 	Mobike struct {
-		Data  []BikeEl `json:"bike_list"`
-		Count int      `json:"count"`
+		Data  []bikelib.BikeData `json:"bike_list"`
+		Count int                `json:"count"`
 	} `json:"mobike"`
 }

@@ -11,8 +11,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// chanStruct
-type chanStruct struct {
+// chanData
+type chanData struct {
 	Error error
 	Data  interface{}
 	Type  string
@@ -51,7 +51,7 @@ func Index(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 // Address router
 func Address(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	var resAddr ResAddr
-	dataChan := make(chan chanStruct, 1)
+	dataChan := make(chan chanData, 1)
 	mapObj := maplib.MapAddr{
 		Address: ps.ByName("addr"),
 	}
@@ -59,12 +59,12 @@ func Address(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	go func() {
 		mapLoc, err := mapObj.GetGeoLoc()
 		if err != nil {
-			dataChan <- chanStruct{
+			dataChan <- chanData{
 				Error: err,
 				Data:  nil,
 			}
 		} else {
-			dataChan <- chanStruct{
+			dataChan <- chanData{
 				Error: nil,
 				Data:  mapLoc,
 			}
@@ -115,26 +115,14 @@ func NearbyBike(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		return
 	}
 
-	dataChan := make(chan chanStruct, 2)
+	bikeChan := make(chan chanData, 2)
+	var bike bikelib.BikeInterface
 	go func() {
-		bike := bikelib.Mobike{
+		bike = bikelib.Mobike{
 			Lat: lat,
 			Lng: lng,
 		}
-		data, err := bike.GetNearbyCar()
-		if err != nil {
-			dataChan <- chanStruct{
-				Error: err,
-				Data:  nil,
-				Type:  "mobike",
-			}
-		} else {
-			dataChan <- chanStruct{
-				Error: nil,
-				Data:  data,
-				Type:  "mobike",
-			}
-		}
+		getBikeData(bikeChan, bike, "mobike")
 	}()
 
 	go func() {
@@ -142,35 +130,39 @@ func NearbyBike(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 			Lat: lat,
 			Lng: lng,
 		}
-		data, err := bike.GetNearbyCar()
-		if err != nil {
-			dataChan <- chanStruct{
-				Error: err,
-				Data:  nil,
-				Type:  "ofo",
-			}
-		} else {
-			dataChan <- chanStruct{
-				Error: nil,
-				Data:  data,
-				Type:  "ofo",
-			}
-		}
+		getBikeData(bikeChan, bike, "ofo")
 	}()
 
 	var resData ResBike
-	for i := 0; i < cap(dataChan); i++ {
+	for i := 0; i < cap(bikeChan); i++ {
 		select {
-		case bikeChan := <-dataChan:
-			generateBikeData(bikeChan, &resData)
+		case resChan := <-bikeChan:
+			generateBikeData(resChan, &resData)
 		}
 	}
-	close(dataChan)
+	close(bikeChan)
 
 	jsonResponse(w, resData)
 }
 
-func generateBikeData(bikeChan chanStruct, data *ResBike) {
+func getBikeData(bikeChan chan chanData, bike bikelib.BikeInterface, bikeType string) {
+	data, err := bike.GetNearbyCar()
+	if err != nil {
+		bikeChan <- chanData{
+			Error: err,
+			Data:  nil,
+			Type:  bikeType,
+		}
+	} else {
+		bikeChan <- chanData{
+			Error: nil,
+			Data:  data,
+			Type:  bikeType,
+		}
+	}
+}
+
+func generateBikeData(bikeChan chanData, data *ResBike) {
 	if bikeChan.Error != nil {
 		log.WithFields(log.Fields{
 			"Error": bikeChan.Error,
@@ -179,37 +171,21 @@ func generateBikeData(bikeChan chanStruct, data *ResBike) {
 		return
 	}
 
+	bikeList := bikeChan.Data.([]bikelib.BikeData)
 	if bikeChan.Type == "ofo" {
-		bikeList := bikeChan.Data.([]bikelib.OfoCar)
-
 		data.Ofo.Count = len(bikeList)
 		log.WithFields(log.Fields{
 			"Ofo": data.Ofo.Count,
 		}).Info("Find ofo cars")
 
-		data.Ofo.Data = make([]BikeEl, len(bikeList))
-		for index, el := range bikeList {
-			data.Ofo.Data[index].Lat = el.Lat
-			data.Ofo.Data[index].Lng = el.Lng
-			data.Ofo.Data[index].ID = el.Carno
-			data.Ofo.Data[index].Type = "ofo"
-		}
-	}
-
-	if bikeChan.Type == "mobike" {
-		bikeList := bikeChan.Data.([]bikelib.MobikeCar)
-
+		data.Ofo.Data = bikeList
+	} else {
 		data.Mobike.Count = len(bikeList)
 		log.WithFields(log.Fields{
 			"Mobike": data.Mobike.Count,
 		}).Info("Find mobike cars")
 
-		data.Mobike.Data = make([]BikeEl, len(bikeList))
-		for index, el := range bikeList {
-			data.Mobike.Data[index].Lat = el.DistY
-			data.Mobike.Data[index].Lng = el.DistX
-			data.Mobike.Data[index].ID = el.DistID
-		}
+		data.Mobike.Data = bikeList
 	}
 	data.Status = 1
 }
